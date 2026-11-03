@@ -3,7 +3,44 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 
-# ================= 1. 数据库初始化 =================
+# ================= 0. 账号密码配置（请务必修改！）=================
+# 这里你可以设置多个账号，格式："用户名": "密码"
+USERS = {
+    "admin": "gym123",   # 管理员账号
+    "lwt": "123456"      # 你的个人账号
+}
+
+# ================= 1. 登录界面逻辑 =================
+# 如果 session_state 里没有 logged_in 属性，说明没登录
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+# 如果没登录，显示登录界面，并拦截后面所有的代码
+if not st.session_state.logged_in:
+    st.set_page_config(page_title="登录 - 打卡系统", layout="centered")
+    st.title("🔐 系统登录")
+    st.markdown("请先验证身份以访问课程管理系统。")
+    
+    with st.form("login_form"):
+        username = st.text_input("用户名")
+        password = st.text_input("密码", type="password")
+        submit = st.form_submit_button("登录", type="primary", use_container_width=True)
+        
+        if submit:
+            # 验证账号密码是否匹配
+            if username in USERS and USERS[username] == password:
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.success("登录成功！正在跳转...")
+                st.rerun() # 刷新页面，进入主程序
+            else:
+                st.error("❌ 用户名或密码错误，请重试！")
+                
+    st.stop() # 核心：如果没登录，直接停止往下运行后面的主程序代码！
+
+# ================= 如果代码能运行到这里，说明已经登录成功 =================
+
+# ================= 2. 数据库初始化 =================
 def init_db():
     conn = sqlite3.connect('gym_data.db')
     c = conn.cursor()
@@ -17,8 +54,8 @@ def init_db():
     
     c.execute("SELECT COUNT(*) FROM students")
     if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO students VALUES ('lwt', '短棍', 24, 9)")
-        c.execute("INSERT INTO students VALUES ('lwt', '拳击', 50, 38)")
+        c.execute("INSERT INTO students VALUES ('lwt', '短棍', 24, 8)")
+        c.execute("INSERT INTO students VALUES ('lwt', '拳击', 50, 36)")
         
         purchases = [
             ('2026-07-11', 'lwt', '短棍', 24, 2388.0),
@@ -35,7 +72,8 @@ def init_db():
             ('2026-08-23', 'lwt', '拳击'), ('2026-08-29', 'lwt', '拳击'), ('2026-09-06', 'lwt', '拳击'),
             ('2026-09-13', 'lwt', '拳击'), ('2026-09-15', 'lwt', '拳击'), ('2026-09-27', 'lwt', '拳击'),
             ('2026-10-03', 'lwt', '拳击'), ('2026-10-11', 'lwt', '拳击'), ('2026-10-18', 'lwt', '拳击'),
-            ('2026-10-23', 'lwt', '拳击'), ('2026-10-25', 'lwt', '拳击'), ('2026-10-30', 'lwt', '拳击')
+            ('2026-10-23', 'lwt', '拳击'), ('2026-10-25', 'lwt', '拳击'), ('2026-10-30', 'lwt', '拳击'),
+            ('2026-11-01', 'lwt', '拳击'), ('2026-11-03', 'lwt', '拳击'), ('2026-11-03', 'lwt', '短棍'),
         ]
         c.executemany("INSERT INTO checkin_logs (date, name, course) VALUES (?, ?, ?)", checkins)
         conn.commit()
@@ -43,13 +81,11 @@ def init_db():
 
 init_db()
 
-# 核心工具函数：重算剩余次数
 def recalculate_remaining_times():
     conn = sqlite3.connect('gym_data.db')
     c = conn.cursor()
     c.execute("SELECT name, course, total_times FROM students")
     records = c.fetchall()
-    
     for name, course, total_times in records:
         c.execute("SELECT COUNT(*) FROM checkin_logs WHERE name=? AND course=?", (name, course))
         checked_in = c.fetchone()[0]
@@ -60,9 +96,17 @@ def recalculate_remaining_times():
 
 recalculate_remaining_times()
 
-# ================= 2. 页面设置 =================
+# ================= 3. 页面设置 =================
 st.set_page_config(page_title="打卡系统", layout="wide")
 st.title("🥊 课程管理系统")
+
+# 在右上角加一个退出登录的按钮
+with st.sidebar:
+    st.write(f"👤 当前用户：**{st.session_state.username}**")
+    if st.button("🚪 退出登录"):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.rerun()
 
 conn = sqlite3.connect('gym_data.db')
 c = conn.cursor()
@@ -132,7 +176,6 @@ with tab1:
     df_stats = pd.read_sql_query(query, conn)
     conn.close()
 
-    # 计算百分比（0-100之间）
     df_stats['课程进度'] = df_stats['已打卡次数'] / df_stats['总次数']
     df_stats['课程进度'] = (df_stats['课程进度'] * 100).clip(upper=100.0) 
     df_stats['课程进度'] = df_stats['课程进度'].fillna(0) 
