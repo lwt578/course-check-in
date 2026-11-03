@@ -54,8 +54,8 @@ def init_db():
     
     c.execute("SELECT COUNT(*) FROM students")
     if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO students VALUES ('lwt', '短棍', 24, 8)")
-        c.execute("INSERT INTO students VALUES ('lwt', '拳击', 50, 36)")
+        c.execute("INSERT INTO students VALUES ('lwt', '短棍', 24, 9)")
+        c.execute("INSERT INTO students VALUES ('lwt', '拳击', 50, 38)")
         
         purchases = [
             ('2026-07-11', 'lwt', '短棍', 24, 2388.0),
@@ -72,8 +72,8 @@ def init_db():
             ('2026-08-23', 'lwt', '拳击'), ('2026-08-29', 'lwt', '拳击'), ('2026-09-06', 'lwt', '拳击'),
             ('2026-09-13', 'lwt', '拳击'), ('2026-09-15', 'lwt', '拳击'), ('2026-09-27', 'lwt', '拳击'),
             ('2026-10-03', 'lwt', '拳击'), ('2026-10-11', 'lwt', '拳击'), ('2026-10-18', 'lwt', '拳击'),
-            ('2026-10-23', 'lwt', '拳击'), ('2026-10-25', 'lwt', '拳击'), ('2026-10-30', 'lwt', '拳击'),
-            ('2026-11-01', 'lwt', '拳击'), ('2026-11-03', 'lwt', '拳击'), ('2026-11-03', 'lwt', '短棍'),
+            ('2026-10-23', 'lwt', '拳击'), ('2026-10-25', 'lwt', '拳击'), ('2026-10-30', 'lwt', '拳击')
+        
         ]
         c.executemany("INSERT INTO checkin_logs (date, name, course) VALUES (?, ?, ?)", checkins)
         conn.commit()
